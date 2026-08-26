@@ -1,3 +1,4 @@
+import re
 import asyncio
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
@@ -14,41 +15,32 @@ app = Client(
     bot_token=BOT_TOKEN
 )
 
-@app.on_message(filters.new_chat_members)
-async def add_user_with_button(client, message):
-    for user in message.new_chat_members:
-        # User ka naam aur ID nikalna
-        name = user.first_name
-        user_id = user.id
-        username = f"@{user.username}" if user.username else "None"
+@app.on_message(filters.text & ~filters.me)
+async def add_button_to_id_message(client, message):
+    text = message.text
+    
+    # Message ke andar se User ID dhoondhna (Regex se ID: ke baad ke numbers nikalna)
+    # Jaise "ID: `8645069146`" ya "ID: 8645069146"
+    match = re.search(r"ID[:\s]*`?(\d+)`?", text, re.IGNORECASE)
+    
+    if match:
+        user_id = int(match.group(1))
         
-        # Message text format
-        text = (
-            f"👤 **New User Joined!**\n"
-            f"┣ 👤 Name: {name}\n"
-            f"┣ 🌐 Username: {username}\n"
-            f"┗ 🆔 ID: `{user_id}`"
-        )
-        
-        # Message ke niche direct profile khulne ke liye button
+        # User ID milte hi usi message ke niche button laga kar edit kar dena
         keyboard = InlineKeyboardMarkup(
             [
                 [InlineKeyboardButton("💬 Message User", url=f"tg://openmessage?user_id={user_id}")]
             ]
         )
         
-        # Purana message delete karne ki koshish (Agar bot admin hoga tabhi chalega)
         try:
-            await message.delete()
+            # Purane message ko hi edit karke button add kar dega
+            await message.edit_text(
+                text=text,
+                reply_markup=keyboard
+            )
         except Exception as e:
-            print(f"Could not delete message: {e}")
-            
-        # Naya custom formatted message button ke sath bhejna
-        await client.send_message(
-            chat_id=message.chat.id,
-            text=text,
-            reply_markup=keyboard
-        )
+            print(f"Could not edit message: {e}")
 
 if __name__ == "__main__":
     print("Bot is running...")
