@@ -19,22 +19,21 @@ app = Client(
 async def add_button_to_id_message(client, message):
     text = message.text
     
-    # Message ke andar se User ID dhoondhna (Regex se ID: ke baad ke numbers nikalna)
-    # Jaise "ID: `8645069146`" ya "ID: 8645069146"
+    # Message ke andar se User ID nikalna
     match = re.search(r"ID[:\s]*`?(\d+)`?", text, re.IGNORECASE)
     
     if match:
         user_id = int(match.group(1))
         
-        # User ID milte hi usi message ke niche button laga kar edit kar dena
+        # Yahan URL schema ko update kiya gaya hai taaki click karne par chat trigger ho
+        # Telegram desktop/mobile ke liye 'tg://user?id=' sabse behtar kaam karta hai
         keyboard = InlineKeyboardMarkup(
             [
-                [InlineKeyboardButton("💬 Message User", url=f"tg://openmessage?user_id={user_id}")]
+                [InlineKeyboardButton("💬 Message User", url=f"tg://user?id={user_id}")]
             ]
         )
         
         try:
-            # Purane message ko hi edit karke button add kar dega
             await message.edit_text(
                 text=text,
                 reply_markup=keyboard
