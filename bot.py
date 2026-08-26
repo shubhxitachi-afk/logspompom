@@ -3,7 +3,6 @@ import asyncio
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 
-# Aapki credentials aur Bot Token
 API_ID = 34829388
 API_HASH = "30df7fd725bd39aa2e3b7a55b15a182b"
 BOT_TOKEN = "8303039257:AAEvpXb-rDdQEu_OILt8d6Lxqq736p3Xn_U"
@@ -19,16 +18,16 @@ app = Client(
 async def add_button_to_id_message(client, message):
     text = message.text
     
-    # Message ke andar se User ID nikalna
+    # Message se User ID nikalna
     match = re.search(r"ID[:\s]*`?(\d+)`?", text, re.IGNORECASE)
     
     if match:
         user_id = match.group(1)
         
-        # Callback button jo click hone par instant action lega
+        # Callback button jo click hone par bot ko trigger karega
         keyboard = InlineKeyboardMarkup(
             [
-                [InlineKeyboardButton("💬 Message User", callback_data=f"contact_{user_id}")]
+                [InlineKeyboardButton("💬 Message User", callback_data=f"get_user_{user_id}")]
             ]
         )
         
@@ -40,33 +39,25 @@ async def add_button_to_id_message(client, message):
         except Exception as e:
             print(f"Could not edit message: {e}")
 
-# Jaise hi button par tap karoge, yeh function run hoga
-@app.on_callback_query(filters.regex(r"^contact_"))
-async def handle_contact_button(client, callback_query: CallbackQuery):
-    user_id = callback_query.data.split("_")[1]
+# Jab koi button par click karega
+@app.on_callback_query(filters.regex(r"^get_user_"))
+async def open_user_chat(client, callback_query: CallbackQuery):
+    user_id = callback_query.data.split("_")[2]
     
-    # Ye user ko direct Telegram chat link popup mein dega
-    profile_link = f"tg://user?id={user_id}"
-    web_link = f"https://t.me/{user_id}" # Alternative fallback
+    # User ko ek direct clickable mention/link ke sath message bhejenge
+    # Telegram markdown me [Name](tg://user?id=...) sabse sahi kaam karta hai jab samne wale ki chat kholni ho
+    response_text = (
+        f"👤 **Target User Details:**\n"
+        f"🆔 ID: `{user_id}`\n\n"
+        f"👉 Click here to chat: [Open Private Chat](tg://user?id={user_id})"
+    )
     
     try:
-        # Click karne wale ko alert mein direct link aur status dikhayega
-        await callback_query.answer(
-            f"User ID: {user_id}\nClick below or check bot PM for direct chat.",
-            show_alert=True
-        )
-        
-        # Bot aapko private (PM) mein clickable link bhej dega taaki aap turant msg bhej sako
-        await client.send_message(
-            chat_id=callback_query.from_user.id,
-            text=f"👤 **Target User Contact Link**\n\n🆔 ID: `{user_id}`\n🔗 Direct Link: [Click Here to Message](tg://user?id={user_id})"
-        )
+        # Click karne wale ke sath private chat me ya group me turant link bhej dega
+        await callback_query.message.reply_text(response_text)
+        await callback_query.answer("Link generated below! 👇", show_alert=False)
     except Exception as e:
-        # Agar bot se PM pehle shuru nahi hai toh group mein bhej dega
-        await client.send_message(
-            chat_id=callback_query.message.chat.id,
-            text=f"👤 User ID: `{user_id}`\n🔗 Chat Link: [Open Chat](tg://user?id={user_id})"
-        )
+        print(f"Error: {e}")
 
 if __name__ == "__main__":
     print("Bot is running...")
